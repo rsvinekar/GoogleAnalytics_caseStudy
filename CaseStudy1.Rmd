@@ -1,0 +1,482 @@
+---
+title: "Case Study 1"
+author: "Rithvik"
+date: "2023-02-15"
+output: github_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ask
+
+## The stakeholders:
+
+-   **Lily Moreno:** The director of marketing and manager
+
+-   **Cyclistic marketing analytics team**
+
+-   **Cyclistic executive team**
+
+## The question to be answered is:
+
+-   *How do annual **members** and **casual** riders use Cyclistic bikes
+    **differently**?*
+
+### These questions below are not asked, but any insight will be helpful in that direction as well
+
+-   Why would casual riders buy Cyclistic annual memberships?
+
+-   How can Cyclistic use digital media to influence casual riders to
+    become members?
+
+# Prepare
+
+The data is obtained from
+[tripdata](https://divvy-tripdata.s3.amazonaws.com/index.html) provided
+for this study. We will use only the data for the year 2022, from 1st
+Jan 2022 to 31st Dec 2022
+
+For this, the data in csv files is downloaded to local drive. They match
+the regular expression pattern "2022.\*divvy.\*.csv":
+
+```{r}
+list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE)
+```
+
+# Process
+
+To begin processing this data, we will first load the packages we need.
+The code below attempts to install the packages if it does not find them
+in the library, and loads them later
+
+## Reading the data
+
+The data is too large to push to github, so it has been downloaded to
+the top-level directory outside git repository.
+
+```{r}
+if (!require("tidyverse")) install.packages("tidyverse")
+library(tidyverse)
+if (!require("lubridate")) install.packages("lubridate")
+library(lubridate)
+```
+
+```{r message=FALSE, warning=FALSE}
+tripdata <-
+  list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE) %>% 
+  map_df(~read_csv(.))
+
+```
+
+## Checking the data
+
+Lets look at the data
+
+```{r}
+names(tripdata)
+```
+
+These are column names
+
+```{r}
+str(tripdata)
+```
+
+This provides the formats for the data read. As we can see, some columns
+are better off as factors
+
+Columns we should have as factors are: rideable_type and member_casual
+
+```{r}
+tripdata$rideable_type <- as.factor(tripdata$rideable_type)
+table(tripdata$rideable_type)
+tripdata$member_casual <- as.factor(tripdata$member_casual)
+table(tripdata$member_casual)
+```
+
+OK, there are no spurious entries for these factors. The dates are ok.
+Are there NA values?
+
+```{r}
+sum(is.na(tripdata$started_at))
+sum(is.na(tripdata$ended_at))
+sum(is.na(tripdata$ride_id))
+sum(is.na(tripdata$rideable_type))
+sum(is.na(tripdata$start_lat))
+sum(is.na(tripdata$end_lat))
+sum(is.na(tripdata$start_lng))
+sum(is.na(tripdata$end_lng))
+```
+
+Only the end_lat and end_lng have an identical number of NAs. Why?
+
+```{r}
+table(tripdata[is.na(tripdata$end_lng),]$rideable_type)
+```
+
+This really doesn't say much.
+
+## Creating new variables
+
+We need to derive some additional data from the columns already present
+
+1.  Duration of the ride - **duration**
+
+2.  Date, extract from timestamp 'started_at' We will ignore corner
+    cases where rides were taken around midnight, and use only
+    started_at for the same - **date**
+
+3.  Weekday - Sunday, Monday etc. that the ride was taken -
+    **day_of_the_week** - a factor
+
+4.  Whether the ride was a weekday ride(Mon..Fri) or a weekend
+    ride(Sat,Sun) - **weekday_or_end** - a factor
+
+5.  A combination of start_station_id and end_station_id - **commute**
+
+For duration, it is simple. Luckily, the started_at and ended_at are
+both in POSIX_ct format as timestamps.
+
+```{r}
+tripdata$duration <- tripdata$ended_at - tripdata$started_at
+```
+
+```{r}
+sum(tripdata$duration<0)
+sum(tripdata$duration==0)
+```
+
+Remove spurious data. Only duration\>0 should be included. The 100
+negative entries are likely errors in entry.
+
+```{r}
+tripdata[tripdata$duration==0,]
+```
+
+Its not clear why there are entries for 0 sec durations as they are
+either maintenance calls or errors. So we will remove all these:
+
+```{r}
+tripdata <- tripdata[tripdata$duration>0,]
+```
+
+Date can easily be extracted, and the
+
+```{r}
+tripdata$date <- lubridate::date(tripdata$started_at)
+```
+
+From this, we get the day_of_the_week
+
+```{r}
+tripdata$day_of_the_week <- as.factor(wday(tripdata$started_at, label=TRUE))
+```
+
+We now need to decide whether the day is a weekday or weekend. This is
+simple:
+
+```{r}
+weekday_or_end <- function(day) ifelse(day=="Sat"|day=="Sun","Weekend","Weekday") 
+```
+
+We define the simple one-line function. Then we plug it into the
+assignment below. Note that these values should be factors
+
+```{r}
+tripdata$weekday_or_end <- as.factor(weekday_or_end(as.character(tripdata$day_of_the_week)))
+```
+
+One last check
+
+```{r}
+str(tripdata)
+```
+
+OK
+
+# Analyse
+
+## Extracting information
+
+For analysis, we can generate a large number of graphs, only some of
+which may make sense, while others may give the same basic information.
+The various factor variables are member_casual, weekday_or_end,
+rideable_type and day_of_the_week. All of these can be used for
+group_by. The member_casual factor is key, as the question to be
+answered revolves around it. So we will generate group-based analysis
+for each of the other factors. The value we need to check is duration,
+as it is the billable quantity here. We take sum, mean, mode, max, min
+and count.
+
+### What day of the week
+
+```{r}
+trips_by_weekday <- tripdata %>%
+                group_by(day_of_the_week, member_casual,date) %>%
+                summarise(sum = sum(duration), mean = mean(duration), mode = mode(duration), max = max(duration), min = min(duration), count = sum(duration>10,na.rm=TRUE))
+```
+
+### Weekly trips on working day or weekend?
+
+```{r}
+weekly_trips <- tripdata %>%
+                group_by(weekday_or_end, member_casual,date) %>%
+                summarise(sum = sum(duration), mean = mean(duration), mode = mode(duration), max = max(duration), min = min(duration), count = sum(duration>10,na.rm=TRUE))
+```
+
+### What type of bike is preferred?
+
+```{r}
+bike_prefs <- tripdata %>%
+                group_by(rideable_type, member_casual,date) %>%
+                summarise(sum = sum(duration), mean = mean(duration), mode = mode(duration), max = max(duration), min = min(duration),count = sum(duration>10,na.rm=TRUE))
+```
+
+Many plots can be generated. But which of them make sense, which of them
+give us the information we need?
+
+### Data for weekdays
+
+#### Count
+
+```{r}
+
+gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=count, fill=member_casual)) +
+            facet_grid(.~member_casual) +
+            geom_col()+
+            ggtitle("Week day durations - Count")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekday_bar)
+```
+
+We can see that there are more member rides than casual rides. The
+casual riders are more in the weekends. We will see more weekday vs
+weekend information later. \#### Sum
+
+```{r}
+
+gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=sum, fill=member_casual)) +
+            facet_grid(.~member_casual) +
+            geom_col()+
+            ggtitle("Week day durations - Sum")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekday_bar)
+```
+
+The pattern is even stronger here: in weekends, casual riders go out for
+long durations or many trips
+
+#### Mean
+
+```{r}
+
+gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=mean, fill=member_casual)) +
+            facet_grid(.~member_casual) +
+            geom_col()+
+  ggtitle("Week day durations - Mean")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekday_bar)
+```
+
+Looks like casual riders ride for longer durations. Lets confirm this:
+
+#### Max
+
+```{r}
+
+gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=max, fill=member_casual)) +
+            facet_grid(.~member_casual) +
+            geom_col()+
+            ggtitle("Week day durations - Max")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekday_bar)
+```
+
+Looks like casual riders love to go on long rides. Not necessarily in
+the weekend, but certainly more. Member riders however seem to use these
+rides for fixed durations. How consistent in this are they?
+
+### Weekdays vs Weekends
+
+We will now plot timelines for all the data through the year and get
+trends.
+
+#### Sum
+
+```{r}
+gg_weekly_sums <- ggplot(data = weekly_trips, aes(x=date, y=sum, col=member_casual)) +
+            facet_grid(weekday_or_end~member_casual) +
+            geom_point() +
+            geom_smooth()+
+  ggtitle("Timeline trend - Duration sum")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekly_sums)
+```
+
+The members are much more consistent. Obviously the usage is more in the
+summer months.
+
+#### Mean
+
+```{r}
+gg_weekly_means <- ggplot(data = weekly_trips, aes(x=date, y=mean, col=member_casual)) +
+            facet_grid(weekday_or_end~member_casual) +
+            geom_point() +
+            geom_smooth()+
+ggtitle("Timeline trend - Duration mean")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekly_means)
+```
+
+This strongly reinforces the consistency of the members
+
+#### Count
+
+```{r}
+g <- ggplot(data = weekly_trips, aes(x=date, y=count, col=member_casual)) +
+            facet_grid(weekday_or_end~member_casual) +
+            geom_point() +
+            geom_smooth()+
+ggtitle("Timeline trend - Duration count")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(g)
+```
+
+There is not much appreciable difference in counts. It seems members and
+casual riders take similar number of rides in the weekdays and weekends.
+
+#### Max
+
+```{r}
+gg_week_max <- ggplot(data = weekly_trips, aes(x=date, y=max, col=member_casual)) +
+            facet_grid(weekday_or_end~member_casual) +
+            geom_point() +
+            geom_smooth()+
+ggtitle("Timeline trend - Duration max")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_week_max)
+```
+
+This shows a drastic difference. The duration of member rides is highly
+restricted and those of casual riders are not. One obvious reason is
+that members use the rides for daily commute to work, while casual
+riders use them for adventure or recreation. To confirm this theory,
+lets take a histogram of means
+
+```{r}
+gg_weekday_hist <- ggplot(data = weekly_trips, aes(x=mean, fill=member_casual)) +
+            facet_grid(weekday_or_end~member_casual) +
+            geom_histogram()+
+    ggtitle("Histogram of mean duration")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_weekday_hist)
+```
+
+This tells us that short-distance commutes are what members prefer,
+while casual riders frequently go on long duration trips.
+
+### Type of Bike
+
+```{r}
+gg_bike_counts <- ggplot(data = bike_prefs, aes(x=date, y=count, col=member_casual)) +
+            facet_grid(rideable_type~member_casual) +
+            geom_point() +
+            geom_smooth() +
+  ggtitle("Timeline trend - Bike type sum")+
+            theme(plot.title = element_text(hjust = 0.5))
+print(gg_bike_counts)
+```
+
+There is no obvious difference in usage of type of bike, though there is
+a preference by casual riders towards classic bike. There is no data for
+docked bike for members, docked bikes are used exclusively by casual
+users.
+
+```{r}
+
+gg_bike_sum <- ggplot(data = bike_prefs, aes(x=date, y=sum, col=member_casual)) +
+            facet_grid(rideable_type~member_casual) +
+            geom_point() +
+            geom_smooth()
+print(gg_bike_sum)
+```
+
+### Commute data
+
+Lets check the type of rides that are preferred by casual vs members
+First lets remove NAs on start station and end station ids:
+
+```{r}
+tripdata_filtered <- tripdata[!is.na(tripdata$start_station_id) & !is.na(tripdata$end_station_id),]
+```
+
+Now, we make a combined variable of start station and end station. If
+start station and end station are identical, it means a round trip. We
+can have a boolean variable for that.
+
+```{r}
+tripdata_filtered$commute_from_to <- as.factor(paste(tripdata_filtered$start_station_name,tripdata_filtered$end_station_name,sep=".to."))
+tripdata_filtered$commuteid_from_to <- as.factor(paste(tripdata_filtered$start_station_id,tripdata_filtered$end_station_id,sep="_-_"))
+tripdata_filtered$roundtrip <- tripdata_filtered$start_station_id == tripdata_filtered$end_station_id
+
+```
+
+We can now get sum , mean, max and count elements for
+
+```{r}
+tripdata_filtered$commuteid_from_to <- as.factor(tripdata_filtered$commuteid_from_to)
+
+commute_prefs <- tripdata_filtered %>%
+                  group_by(member_casual,roundtrip) %>%
+                  summarise(sum = sum(duration), mean=mean(duration),max=max(duration),count = sum(duration>10,na.rm=TRUE)) 
+commute_stats <- tripdata_filtered %>%
+                  group_by(commuteid_from_to,member_casual,roundtrip) %>%
+                  summarise(count = sum(duration>10,na.rm=TRUE))
+## since there are a large number of commuteid_from_to groups, don't use sum in summarise, or it takes forever
+```
+
+```{r}
+commute_stats_top <- commute_stats %>%
+                      arrange(desc(count)) %>%
+                      group_by(member_casual) %>%
+                      slice(1:10)
+commute_stats_top
+```
+
+For casual riders, most of the rides are round trips, where destination
+is same as starting point.
+
+```{r}
+gg_commute_bar <- ggplot(data = commute_prefs, aes( x=member_casual, y=mean, fill=roundtrip)) +
+#            facet_grid(.~roundtrip) +
+            geom_col()+
+            ggtitle("Commute Preferences - Roundtrip (TRUE/FALSE)")+
+            theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(gg_commute_bar)
+```
+
+This shows casual users prefer to use round trips for fairly long
+commutes.
+
+# Conclusions
+
+Using the above charts we can come to the conclusions that:-
+
+1.  Casual users use bikes more frequently in the weekends than in the
+    weekdays
+
+2.  Casual users prefer long duration trips, while members have fixed
+    duration trips
+
+3.  Member trip durations are very consistent - they indicate possible
+    commute times to and from work. Casual users use rides likely for
+    recreational activities or visits.
+
+4.  Casual members use more round trips. However, members also utilize
+    round trips, though lesser. This may indicate errand runs during
+    work.
