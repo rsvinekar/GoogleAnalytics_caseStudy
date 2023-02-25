@@ -15,4 +15,4 @@ The actual project is documented in the [CaseStudy1](CaseStudy1.md)
 file, with the corresponding Rmarkdown [CaseStudy1.Rmd](CaseStudy1.Rmd)
 file for reference. The question and guide for the project is [given
 here](aacF81H_TsWnBfNR_x7FIg_36299b28fa0c4a5aba836111daad12f1_DAC8-Case-Study-1.pdf).
-A presentation also needs to be made.
+A [presentation](Presentation.pptx) also needs to be made.
