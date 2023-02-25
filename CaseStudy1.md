@@ -1,6 +1,6 @@
 Case Study 1
 ================
-Rithvik
+Rithvik Shamrao Vinekar
 2023-02-15
 
 # Ask
@@ -255,7 +255,7 @@ For duration, it is simple. Luckily, the started_at and ended_at are
 both in POSIX_ct format as timestamps.
 
 ``` r
-tripdata$duration <- tripdata$ended_at - tripdata$started_at
+tripdata$duration <- difftime(tripdata$ended_at,tripdata$started_at, units = "secs")
 ```
 
 ``` r
@@ -370,11 +370,46 @@ for each of the other factors. The value we need to check is duration,
 as it is the billable quantity here. We take sum, mean, mode, max, min
 and count.
 
+``` r
+max(tripdata$duration)
+```
+
+    ## Time difference of 2483235 secs
+
+``` r
+tripdata[tripdata$duration==max(tripdata$duration),]
+```
+
+    ## # A tibble: 1 × 17
+    ##   ride_id        ridea…¹ started_at          ended_at            start…² start…³
+    ##   <chr>          <fct>   <dttm>              <dttm>              <chr>   <chr>  
+    ## 1 7D4CB0DD5137C… docked… 2022-10-01 15:04:38 2022-10-30 08:51:53 St. Lo… KA1504…
+    ## # … with 11 more variables: end_station_name <chr>, end_station_id <chr>,
+    ## #   start_lat <dbl>, start_lng <dbl>, end_lat <dbl>, end_lng <dbl>,
+    ## #   member_casual <fct>, duration <drtn>, date <date>, day_of_the_week <ord>,
+    ## #   weekday_or_end <fct>, and abbreviated variable names ¹​rideable_type,
+    ## #   ²​start_station_name, ³​start_station_id
+
+``` r
+table(tripdata[tripdata$duration>95000,]$rideable_type)
+```
+
+    ## 
+    ##  classic_bike   docked_bike electric_bike 
+    ##             0          1466             0
+
+This is just to check the duration ranges we are dealing with. Max time
+is 2483235 sec which is nearly 28 days. It is a docked bike, which
+someone likely forgot to return to dock. Any hiretime greater than 24
+hrs seems to be docked bikes, since there is no person to enforce the
+return of the bikes.
+
 ### What day of the week
 
 ``` r
 trips_by_weekday <- tripdata %>%
                 group_by(day_of_the_week, member_casual,date) %>%
+  filter(as.character(rideable_type)!="docked_bike") %>%
                 summarise(sum = sum(duration), mean = mean(duration), mode = mode(duration), max = max(duration), min = min(duration), count = sum(duration>10,na.rm=TRUE))
 ```
 
@@ -384,8 +419,9 @@ trips_by_weekday <- tripdata %>%
 ### Weekly trips on working day or weekend?
 
 ``` r
-weekly_trips <- tripdata %>%
+weekly_trips <- tripdata %>% 
                 group_by(weekday_or_end, member_casual,date) %>%
+                filter(as.character(rideable_type)!="docked_bike") %>%
                 summarise(sum = sum(duration), mean = mean(duration), mode = mode(duration), max = max(duration), min = min(duration), count = sum(duration>10,na.rm=TRUE))
 ```
 
@@ -416,10 +452,12 @@ gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=count
             geom_col()+
             ggtitle("Week day durations - Count")+
             theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekday_bar)
+ggsave(gg_weekday_bar,filename="gg_weekday_bar_count.png",dpi=320)
 ```
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+    ## Saving 7 x 5 in image
+
+![](gg_weekday_bar_count.png)
 
 We can see that there are more member rides than casual rides. The
 casual riders are more in the weekends. We will see more weekday vs
@@ -431,13 +469,14 @@ gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=sum, 
             geom_col()+
             ggtitle("Week day durations - Sum")+
             theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekday_bar)
+ggsave(gg_weekday_bar,filename="gg_weekday_bar_sum.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](gg_weekday_bar_sum.png)
 
 The pattern is even stronger here: in weekends, casual riders go out for
 long durations or many trips
@@ -450,13 +489,14 @@ gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=mean,
             geom_col()+
   ggtitle("Week day durations - Mean")+
             theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekday_bar)
+ggsave(gg_weekday_bar,filename="gg_weekday_bar_mean.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](gg_weekday_bar_mean.png)
 
 Looks like casual riders ride for longer durations. Lets confirm this:
 
@@ -468,13 +508,14 @@ gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=max, 
             geom_col()+
             ggtitle("Week day durations - Max")+
             theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekday_bar)
+ggsave(gg_weekday_bar,filename="gg_weekday_bar_max.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](gg_weekday_bar_max.png)
 
 Looks like casual riders love to go on long rides. Not necessarily in
 the weekend, but certainly more. Member riders however seem to use these
@@ -493,15 +534,16 @@ gg_weekly_sums <- ggplot(data = weekly_trips, aes(x=date, y=sum, col=member_casu
             geom_point() +
             geom_smooth()+
   ggtitle("Timeline trend - Duration sum")+
-            theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekly_sums)
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 90, vjust = 0, hjust=0))
+ggsave(gg_weekly_sums,filename="gg_weekly_sum.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](gg_weekly_sum.png)
 
 The members are much more consistent. Obviously the usage is more in the
 summer months.
@@ -514,33 +556,35 @@ gg_weekly_means <- ggplot(data = weekly_trips, aes(x=date, y=mean, col=member_ca
             geom_point() +
             geom_smooth()+
 ggtitle("Timeline trend - Duration mean")+
-            theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekly_means)
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 90, vjust = 0, hjust=0))
+ggsave(gg_weekly_means,filename="gg_weekly_means.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](gg_weekly_means.png)
 
 This strongly reinforces the consistency of the members
 
 #### Count
 
 ``` r
-g <- ggplot(data = weekly_trips, aes(x=date, y=count, col=member_casual)) +
+gg_weekly_count <- ggplot(data = weekly_trips, aes(x=date, y=count, col=member_casual)) +
             facet_grid(weekday_or_end~member_casual) +
             geom_point() +
             geom_smooth()+
 ggtitle("Timeline trend - Duration count")+
-            theme(plot.title = element_text(hjust = 0.5))
-print(g)
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 90, vjust = 0, hjust=0))
+ggsave(gg_weekly_count,filename="gg_weekly_count.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](gg_weekly_count.png)
 
 There is not much appreciable difference in counts. It seems members and
 casual riders take similar number of rides in the weekdays and weekends.
@@ -553,15 +597,16 @@ gg_week_max <- ggplot(data = weekly_trips, aes(x=date, y=max, col=member_casual)
             geom_point() +
             geom_smooth()+
 ggtitle("Timeline trend - Duration max")+
-            theme(plot.title = element_text(hjust = 0.5))
-print(gg_week_max)
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 90, vjust = 0, hjust=0))
+ggsave(gg_week_max,filename="gg_week_max.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+![](gg_week_max.png)
 
 This shows a drastic difference. The duration of member rides is highly
 restricted and those of casual riders are not. One obvious reason is
@@ -575,14 +620,15 @@ gg_weekday_hist <- ggplot(data = weekly_trips, aes(x=mean, fill=member_casual)) 
             geom_histogram()+
     ggtitle("Histogram of mean duration")+
             theme(plot.title = element_text(hjust = 0.5))
-print(gg_weekday_hist)
+ggsave(gg_weekday_hist,filename="gg_weekday_hist.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](gg_weekday_hist.png)
 
 This tells us that short-distance commutes are what members prefer,
 while casual riders frequently go on long duration trips.
@@ -594,14 +640,15 @@ gg_bike_counts <- ggplot(data = bike_prefs, aes(x=date, y=count, col=member_casu
             facet_grid(rideable_type~member_casual) +
             geom_point() +
             geom_smooth() +
-  ggtitle("Timeline trend - Bike type sum")+
-            theme(plot.title = element_text(hjust = 0.5))
-print(gg_bike_counts)
+  ggtitle("Timeline trend - Bike type count")+
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, vjust = 0.6, hjust=0.6))
+ggsave(gg_bike_counts,filename="gg_bike_counts.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](gg_bike_counts.png)
 
 There is no obvious difference in usage of type of bike, though there is
 a preference by casual riders towards classic bike. There is no data for
@@ -611,16 +658,20 @@ users.
 ``` r
 gg_bike_sum <- ggplot(data = bike_prefs, aes(x=date, y=sum, col=member_casual)) +
             facet_grid(rideable_type~member_casual) +
+            ggtitle("Timeline trend - Bike type sum")+
+            theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, vjust = 0.6, hjust=0.6))+
             geom_point() +
             geom_smooth()
-print(gg_bike_sum)
+
+ggsave(gg_bike_sum,filename="gg_bike_sum.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](gg_bike_sum.png)
 
 ### Commute data
 
@@ -708,27 +759,28 @@ gg_commute_bar <- ggplot(data = commute_prefs, aes( x=member_casual, y=mean, fil
 #            facet_grid(.~roundtrip) +
             geom_col()+
             ggtitle("Commute Preferences - Roundtrip (TRUE/FALSE)")+
-            theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-print(gg_commute_bar)
+            theme(plot.title = element_text(hjust = 0.5))
+ggsave(gg_commute_bar,filename="gg_commute_bar.png",dpi=320)
 ```
 
+    ## Saving 7 x 5 in image
     ## Don't know how to automatically pick scale for object of type <difftime>.
     ## Defaulting to continuous.
 
-![](CaseStudy1_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](gg_commute_bar.png)
 
 This shows casual users prefer to use round trips for fairly long
 commutes.
 
-# Conclusions
+## Synopsis of study
 
 Using the above charts we can come to the conclusions that:-
 
 1.  Casual users use bikes more frequently in the weekends than in the
     weekdays
 
-2.  Casual users prefer long duration trips, while members have fixed
-    duration trips
+2.  Casual users prefer long duration trips which are highly variable in
+    duration, while members have fixed duration trips.
 
 3.  Member trip durations are very consistent - they indicate possible
     commute times to and from work. Casual users use rides likely for
@@ -737,3 +789,20 @@ Using the above charts we can come to the conclusions that:-
 4.  Casual members use more round trips. However, members also utilize
     round trips, though lesser. This may indicate errand runs during
     work.
+
+## Share
+
+Make a presentation of the data above with the above conclusions
+
+## Act
+
+1.  Frequently used starting points for Casual users like station_id
+    13022 (Streeter Dr & Grand Ave) or 13300 (DuSable Lake Shore Dr &
+    Monroe St ) should have campaigns targeted at regular users
+    frequenting these stations
+
+2.  Casual users who may use rides for daily commute should be made
+    aware of the benefits of membership, and easy way to obtain the same
+
+3.  Weekday casual users should be made aware of the benefits of
+    membership
