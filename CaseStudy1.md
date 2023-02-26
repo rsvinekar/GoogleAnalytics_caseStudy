@@ -3,7 +3,65 @@ Case Study 1
 Rithvik Shamrao Vinekar
 2023-02-15
 
+- <a href="#ask" id="toc-ask">Ask</a>
+  - <a href="#the-stakeholders" id="toc-the-stakeholders">The
+    stakeholders:</a>
+  - <a href="#the-question-to-be-answered-is"
+    id="toc-the-question-to-be-answered-is">The question to be answered
+    is:</a>
+    - <a
+      href="#these-questions-below-are-not-asked-but-any-insight-will-be-helpful-in-that-direction-as-well"
+      id="toc-these-questions-below-are-not-asked-but-any-insight-will-be-helpful-in-that-direction-as-well">These
+      questions below are not asked, but any insight will be helpful in that
+      direction as well</a>
+- <a href="#prepare" id="toc-prepare">Prepare</a>
+  - <a href="#the-initial-environment" id="toc-the-initial-environment">The
+    Initial environment</a>
+  - <a href="#load-required-libraries" id="toc-load-required-libraries">Load
+    required libraries</a>
+  - <a href="#download-data" id="toc-download-data">Download data</a>
+  - <a href="#unzip-data" id="toc-unzip-data">Unzip data</a>
+- <a href="#process" id="toc-process">Process</a>
+  - <a href="#reading-the-data" id="toc-reading-the-data">Reading the
+    data</a>
+  - <a href="#checking-the-data" id="toc-checking-the-data">Checking the
+    data</a>
+  - <a href="#creating-new-variables"
+    id="toc-creating-new-variables">Creating new variables</a>
+- <a href="#analyse" id="toc-analyse">Analyse</a>
+  - <a href="#extracting-information"
+    id="toc-extracting-information">Extracting information</a>
+    - <a href="#what-day-of-the-week" id="toc-what-day-of-the-week">What day
+      of the week</a>
+    - <a href="#weekly-trips-on-working-day-or-weekend"
+      id="toc-weekly-trips-on-working-day-or-weekend">Weekly trips on working
+      day or weekend?</a>
+    - <a href="#what-type-of-bike-is-preferred"
+      id="toc-what-type-of-bike-is-preferred">What type of bike is
+      preferred?</a>
+  - <a href="#data-for-weekdays" id="toc-data-for-weekdays">Data for
+    weekdays</a>
+    - <a href="#count" id="toc-count">Count</a>
+    - <a href="#mean" id="toc-mean">Mean</a>
+    - <a href="#max" id="toc-max">Max</a>
+  - <a href="#weekdays-vs-weekends" id="toc-weekdays-vs-weekends">Weekdays
+    vs Weekends</a>
+    - <a href="#sum" id="toc-sum">Sum</a>
+    - <a href="#mean-1" id="toc-mean-1">Mean</a>
+    - <a href="#count-1" id="toc-count-1">Count</a>
+    - <a href="#max-1" id="toc-max-1">Max</a>
+    - <a href="#type-of-bike" id="toc-type-of-bike">Type of Bike</a>
+    - <a href="#commute-data" id="toc-commute-data">Commute data</a>
+  - <a href="#synopsis-of-study" id="toc-synopsis-of-study">Synopsis of
+    study</a>
+  - <a href="#share" id="toc-share">Share</a>
+  - <a href="#act" id="toc-act">Act</a>
+
 # Ask
+
+The question and guide for the project is [given
+here](aacF81H_TsWnBfNR_x7FIg_36299b28fa0c4a5aba836111daad12f1_DAC8-Case-Study-1.pdf).
+A [presentation](Presentation.pptx) is also made.
 
 ## The stakeholders:
 
@@ -27,35 +85,33 @@ Rithvik Shamrao Vinekar
 
 # Prepare
 
-The data is obtained from
-[tripdata](https://divvy-tripdata.s3.amazonaws.com/index.html) provided
-for this study. We will use only the data for the year 2022, from 1st
-Jan 2022 to 31st Dec 2022
-
-For this, the data in csv files is downloaded to local drive. They match
-the regular expression pattern “2022.\*divvy.\*.csv”:
+## The Initial environment
 
 ``` r
-list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE)
+sessionInfo()
 ```
 
-    ##  [1] "../202201-divvy-tripdata.csv" "../202202-divvy-tripdata.csv"
-    ##  [3] "../202203-divvy-tripdata.csv" "../202204-divvy-tripdata.csv"
-    ##  [5] "../202205-divvy-tripdata.csv" "../202206-divvy-tripdata.csv"
-    ##  [7] "../202207-divvy-tripdata.csv" "../202208-divvy-tripdata.csv"
-    ##  [9] "../202209-divvy-tripdata.csv" "../202210-divvy-tripdata.csv"
-    ## [11] "../202211-divvy-tripdata.csv" "../202212-divvy-tripdata.csv"
+    ## R version 4.2.2 (2022-10-31)
+    ## Platform: aarch64-apple-darwin20 (64-bit)
+    ## Running under: macOS Ventura 13.2
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+    ## 
+    ## locale:
+    ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] compiler_4.2.2  fastmap_1.1.0   cli_3.6.0       tools_4.2.2    
+    ##  [5] htmltools_0.5.4 rstudioapi_0.14 yaml_2.3.7      rmarkdown_2.20 
+    ##  [9] knitr_1.42      xfun_0.36       digest_0.6.31   rlang_1.0.6    
+    ## [13] evaluate_0.20
 
-# Process
-
-To begin processing this data, we will first load the packages we need.
-The code below attempts to install the packages if it does not find them
-in the library, and loads them later
-
-## Reading the data
-
-The data is too large to push to github, so it has been downloaded to
-the top-level directory outside git repository.
+## Load required libraries
 
 ``` r
 if (!require("tidyverse")) install.packages("tidyverse")
@@ -89,11 +145,98 @@ if (!require("lubridate")) install.packages("lubridate")
 library(lubridate)
 ```
 
+## Download data
+
+The data is obtained from
+[tripdata](https://divvy-tripdata.s3.amazonaws.com/index.html) provided
+for this study. We will use only the data for the year 2022, from 1st
+Jan 2022 to 31st Dec 2022. We will automate download, and clean up, so
+our git directory is clean
+
 ``` r
-tripdata <-
-  list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE) %>% 
-  map_df(~read_csv(.))
+url_base <- "https://divvy-tripdata.s3.amazonaws.com"
+filename_pattern <- "2022%02d-divvy-tripdata.zip"
+url_zip <- paste(url_base,filename_pattern,sep="/")
+url_source <-sprintf(url_zip,1:12) 
+file_dest <- sprintf(filename_pattern,1:12)
 ```
+
+<!-- Method libcurl to ensure this works in Rmarkdown. Without this, -->
+<!-- method=auto is default It works standalone, but fails on knit -->
+
+``` r
+download.file(url_source,file_dest, method="libcurl")
+rm(url_zip,filename_pattern, url_source, file_dest)
+```
+
+## Unzip data
+
+For this, the data in csv files is downloaded to local drive as zip
+files. They match the regular expression pattern “2022.*divvy.*.zip”,
+and are unzipped. The zip files are deleted immediately
+
+``` r
+lst <- list.files(path = ".", pattern = "2022.*divvy.*.zip",full.names = TRUE)
+sapply(lst, unzip, exdir = ".") 
+```
+
+    ##      ./202201-divvy-tripdata.zip             
+    ## [1,] "./202201-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202201-divvy-tripdata.csv"
+    ##      ./202202-divvy-tripdata.zip             
+    ## [1,] "./202202-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202202-divvy-tripdata.csv"
+    ##      ./202203-divvy-tripdata.zip             
+    ## [1,] "./202203-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202203-divvy-tripdata.csv"
+    ##      ./202204-divvy-tripdata.zip             
+    ## [1,] "./202204-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202204-divvy-tripdata.csv"
+    ##      ./202205-divvy-tripdata.zip             
+    ## [1,] "./202205-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202205-divvy-tripdata.csv"
+    ##      ./202206-divvy-tripdata.zip             
+    ## [1,] "./202206-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202206-divvy-tripdata.csv"
+    ##      ./202207-divvy-tripdata.zip             
+    ## [1,] "./202207-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202207-divvy-tripdata.csv"
+    ##      ./202208-divvy-tripdata.zip             
+    ## [1,] "./202208-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202208-divvy-tripdata.csv"
+    ##      ./202209-divvy-tripdata.zip                   
+    ## [1,] "./202209-divvy-publictripdata.csv"           
+    ## [2,] "./__MACOSX/._202209-divvy-publictripdata.csv"
+    ##      ./202210-divvy-tripdata.zip             
+    ## [1,] "./202210-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202210-divvy-tripdata.csv"
+    ##      ./202211-divvy-tripdata.zip             
+    ## [1,] "./202211-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202211-divvy-tripdata.csv"
+    ##      ./202212-divvy-tripdata.zip             
+    ## [1,] "./202212-divvy-tripdata.csv"           
+    ## [2,] "./__MACOSX/._202212-divvy-tripdata.csv"
+
+``` r
+unlink(lst)
+```
+
+I don’t need that \_\_MACOSX directory.
+
+``` r
+unlink("__MACOSX", recursive = TRUE)
+```
+
+# Process
+
+To begin processing this data, we will first load the packages we need.
+The code below attempts to install the packages if it does not find them
+in the library, and loads them later
+
+## Reading the data
+
+The csv files have been downloaded. They are now read and immediately
+deleted after that.
 
 ## Checking the data
 
@@ -255,7 +398,7 @@ For duration, it is simple. Luckily, the started_at and ended_at are
 both in POSIX_ct format as timestamps.
 
 ``` r
-tripdata$duration <- difftime(tripdata$ended_at,tripdata$started_at, units = "secs")
+tripdata$duration <- as.numeric(difftime(tripdata$ended_at,tripdata$started_at, units = "secs"))
 ```
 
 ``` r
@@ -292,17 +435,34 @@ tripdata[tripdata$duration==0,]
     ## 10 CF76E9E68F30… classi… 2022-02-24 07:41:45 2022-02-24 07:41:45 Ashlan… 13224  
     ## # … with 421 more rows, 8 more variables: end_station_name <chr>,
     ## #   end_station_id <chr>, start_lat <dbl>, start_lng <dbl>, end_lat <dbl>,
-    ## #   end_lng <dbl>, member_casual <fct>, duration <drtn>, and abbreviated
+    ## #   end_lng <dbl>, member_casual <fct>, duration <dbl>, and abbreviated
     ## #   variable names ¹​rideable_type, ²​start_station_name, ³​start_station_id
 
 Its not clear why there are entries for 0 sec durations as they are
 either maintenance calls or errors. So we will remove all these:
 
 ``` r
+summary(tripdata$duration)
+```
+
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ## -621201     349     617    1167    1108 2483235
+
+``` r
 tripdata <- tripdata[tripdata$duration>0,]
 ```
 
-Date can easily be extracted, and the
+``` r
+summary(tripdata$duration)
+```
+
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ##       1     349     617    1167    1108 2483235
+
+The summary here shows that there are large number of negative values
+which are invalid, as well as very large durations, which may be valid,
+but are special cases. We need to dig out the reason they are there.
+Date can easily be extracted using started_at
 
 ``` r
 tripdata$date <- lubridate::date(tripdata$started_at)
@@ -348,8 +508,7 @@ str(tripdata)
     ##  $ end_lat           : num [1:5667186] 42 42 41.9 42 41.9 ...
     ##  $ end_lng           : num [1:5667186] -87.7 -87.7 -87.7 -87.7 -87.6 ...
     ##  $ member_casual     : Factor w/ 2 levels "casual","member": 1 1 2 1 2 2 2 2 2 2 ...
-    ##  $ duration          : 'difftime' num [1:5667186] 177 261 261 896 ...
-    ##   ..- attr(*, "units")= chr "secs"
+    ##  $ duration          : num [1:5667186] 177 261 261 896 362 ...
     ##  $ date              : Date[1:5667186], format: "2022-01-13" "2022-01-10" ...
     ##  $ day_of_the_week   : Ord.factor w/ 7 levels "Sun"<"Mon"<"Tue"<..: 5 2 3 3 5 3 1 7 2 6 ...
     ##  $ weekday_or_end    : Factor w/ 2 levels "Weekday","Weekend": 1 1 1 1 1 1 2 2 1 1 ...
@@ -374,35 +533,52 @@ and count.
 max(tripdata$duration)
 ```
 
-    ## Time difference of 2483235 secs
+    ## [1] 2483235
 
 ``` r
-tripdata[tripdata$duration==max(tripdata$duration),]
+tripdata[tripdata$duration==max(tripdata$duration),c("rideable_type","duration","member_casual")]
 ```
 
-    ## # A tibble: 1 × 17
-    ##   ride_id        ridea…¹ started_at          ended_at            start…² start…³
-    ##   <chr>          <fct>   <dttm>              <dttm>              <chr>   <chr>  
-    ## 1 7D4CB0DD5137C… docked… 2022-10-01 15:04:38 2022-10-30 08:51:53 St. Lo… KA1504…
-    ## # … with 11 more variables: end_station_name <chr>, end_station_id <chr>,
-    ## #   start_lat <dbl>, start_lng <dbl>, end_lat <dbl>, end_lng <dbl>,
-    ## #   member_casual <fct>, duration <drtn>, date <date>, day_of_the_week <ord>,
-    ## #   weekday_or_end <fct>, and abbreviated variable names ¹​rideable_type,
-    ## #   ²​start_station_name, ³​start_station_id
+    ## # A tibble: 1 × 3
+    ##   rideable_type duration member_casual
+    ##   <fct>            <dbl> <fct>        
+    ## 1 docked_bike    2483235 casual
+
+The duration greater than 24 hrs i.e. 86400 sec
 
 ``` r
-table(tripdata[tripdata$duration>95000,]$rideable_type)
+table(tripdata[tripdata$duration>86400,]$rideable_type)
 ```
 
     ## 
     ##  classic_bike   docked_bike electric_bike 
-    ##             0          1466             0
+    ##          3323          2037             0
+
+``` r
+tripdata[tripdata$duration>86400 & as.character(tripdata$rideable_type)=="classic_bike",c("rideable_type","duration","member_casual")]
+```
+
+    ## # A tibble: 3,323 × 3
+    ##    rideable_type duration member_casual
+    ##    <fct>            <dbl> <fct>        
+    ##  1 classic_bike     89993 member       
+    ##  2 classic_bike     89993 casual       
+    ##  3 classic_bike     89995 casual       
+    ##  4 classic_bike     89993 casual       
+    ##  5 classic_bike     89993 casual       
+    ##  6 classic_bike     89993 casual       
+    ##  7 classic_bike     89996 casual       
+    ##  8 classic_bike     89993 casual       
+    ##  9 classic_bike     89991 casual       
+    ## 10 classic_bike     89992 casual       
+    ## # … with 3,313 more rows
 
 This is just to check the duration ranges we are dealing with. Max time
 is 2483235 sec which is nearly 28 days. It is a docked bike, which
-someone likely forgot to return to dock. Any hiretime greater than 24
+someone likely forgot to return to dock. Any hire time greater than 24
 hrs seems to be docked bikes, since there is no person to enforce the
-return of the bikes.
+return of the bikes. Classic bikes may be hired for up to 26 hrs, but
+there may have been a fine to pay :-). There were 2186 such instances.
 
 ### What day of the week
 
@@ -442,9 +618,9 @@ bike_prefs <- tripdata %>%
 Many plots can be generated. But which of them make sense, which of them
 give us the information we need?
 
-### Data for weekdays
+## Data for weekdays
 
-#### Count
+### Count
 
 ``` r
 gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=count, fill=member_casual)) +
@@ -473,15 +649,13 @@ ggsave(gg_weekday_bar,filename="gg_weekday_bar_sum.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
 
 ![](gg_weekday_bar_sum.png)
 
 The pattern is even stronger here: in weekends, casual riders go out for
 long durations or many trips
 
-#### Mean
+### Mean
 
 ``` r
 gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=mean, fill=member_casual)) +
@@ -493,14 +667,12 @@ ggsave(gg_weekday_bar,filename="gg_weekday_bar_mean.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
 
 ![](gg_weekday_bar_mean.png)
 
 Looks like casual riders ride for longer durations. Lets confirm this:
 
-#### Max
+### Max
 
 ``` r
 gg_weekday_bar <- ggplot(data = trips_by_weekday, aes(x=day_of_the_week, y=max, fill=member_casual)) +
@@ -512,8 +684,6 @@ ggsave(gg_weekday_bar,filename="gg_weekday_bar_max.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
 
 ![](gg_weekday_bar_max.png)
 
@@ -521,12 +691,12 @@ Looks like casual riders love to go on long rides. Not necessarily in
 the weekend, but certainly more. Member riders however seem to use these
 rides for fixed durations. How consistent in this are they?
 
-### Weekdays vs Weekends
+## Weekdays vs Weekends
 
 We will now plot timelines for all the data through the year and get
 trends.
 
-#### Sum
+### Sum
 
 ``` r
 gg_weekly_sums <- ggplot(data = weekly_trips, aes(x=date, y=sum, col=member_casual)) +
@@ -539,8 +709,6 @@ ggsave(gg_weekly_sums,filename="gg_weekly_sum.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
 ![](gg_weekly_sum.png)
@@ -548,7 +716,7 @@ ggsave(gg_weekly_sums,filename="gg_weekly_sum.png",dpi=320)
 The members are much more consistent. Obviously the usage is more in the
 summer months.
 
-#### Mean
+### Mean
 
 ``` r
 gg_weekly_means <- ggplot(data = weekly_trips, aes(x=date, y=mean, col=member_casual)) +
@@ -561,15 +729,13 @@ ggsave(gg_weekly_means,filename="gg_weekly_means.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
 ![](gg_weekly_means.png)
 
 This strongly reinforces the consistency of the members
 
-#### Count
+### Count
 
 ``` r
 gg_weekly_count <- ggplot(data = weekly_trips, aes(x=date, y=count, col=member_casual)) +
@@ -589,7 +755,7 @@ ggsave(gg_weekly_count,filename="gg_weekly_count.png",dpi=320)
 There is not much appreciable difference in counts. It seems members and
 casual riders take similar number of rides in the weekdays and weekends.
 
-#### Max
+### Max
 
 ``` r
 gg_week_max <- ggplot(data = weekly_trips, aes(x=date, y=max, col=member_casual)) +
@@ -602,17 +768,17 @@ ggsave(gg_week_max,filename="gg_week_max.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
 ![](gg_week_max.png)
 
-This shows a drastic difference. The duration of member rides is highly
-restricted and those of casual riders are not. One obvious reason is
-that members use the rides for daily commute to work, while casual
-riders use them for adventure or recreation. To confirm this theory,
-lets take a histogram of means
+Max values are restricted to around 25 hrs at max (24 + 1hr grace
+period - as a guess). The docked_bike values are not included here, as
+we have seen them going much greater than 25 hrs. Even under these
+situations,member usage is more restricted and those of casual riders
+are not. One obvious reason is that members use the rides for daily
+commute to work, while casual riders use them for adventure or
+recreation. To confirm this theory, lets take a histogram of means
 
 ``` r
 gg_weekday_hist <- ggplot(data = weekly_trips, aes(x=mean, fill=member_casual)) +
@@ -624,8 +790,6 @@ ggsave(gg_weekday_hist,filename="gg_weekday_hist.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
 ![](gg_weekday_hist.png)
@@ -667,8 +831,6 @@ ggsave(gg_bike_sum,filename="gg_bike_sum.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
     ## `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 
 ![](gg_bike_sum.png)
@@ -764,8 +926,6 @@ ggsave(gg_commute_bar,filename="gg_commute_bar.png",dpi=320)
 ```
 
     ## Saving 7 x 5 in image
-    ## Don't know how to automatically pick scale for object of type <difftime>.
-    ## Defaulting to continuous.
 
 ![](gg_commute_bar.png)
 

@@ -3,7 +3,9 @@ title: "Case Study 1"
 author: "Rithvik Shamrao Vinekar"
 date: "2023-02-15"
 output: 
-  github_document
+  github_document:
+    toc: true
+    toc_depth: 3
 editor_options: 
   markdown: 
     wrap: 72
@@ -14,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Ask
+
+The question and guide for the project is [given here](aacF81H_TsWnBfNR_x7FIg_36299b28fa0c4a5aba836111daad12f1_DAC8-Case-Study-1.pdf). A [presentation](Presentation.pptx) is also made.
 
 ## The stakeholders:
 
@@ -37,16 +41,59 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Prepare
 
+## The Initial environment
+
+```{r}
+sessionInfo()
+```
+
+## Load required libraries
+
+```{r}
+if (!require("tidyverse")) install.packages("tidyverse")
+library(tidyverse)
+if (!require("lubridate")) install.packages("lubridate")
+library(lubridate)
+```
+
+## Download data
+
 The data is obtained from
 [tripdata](https://divvy-tripdata.s3.amazonaws.com/index.html) provided
 for this study. We will use only the data for the year 2022, from 1st
-Jan 2022 to 31st Dec 2022
+Jan 2022 to 31st Dec 2022. We will automate download, and clean up, so
+our git directory is clean
 
-For this, the data in csv files is downloaded to local drive. They match
-the regular expression pattern "2022.\*divvy.\*.csv":
+```{r message=FALSE, warning=FALSE, include=TRUE}
+url_base <- "https://divvy-tripdata.s3.amazonaws.com"
+filename_pattern <- "2022%02d-divvy-tripdata.zip"
+url_zip <- paste(url_base,filename_pattern,sep="/")
+url_source <-sprintf(url_zip,1:12) 
+file_dest <- sprintf(filename_pattern,1:12)
+```
 
+<!-- Method libcurl to ensure this works in Rmarkdown. Without this, -->
+<!-- method=auto is default It works standalone, but fails on knit -->
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+download.file(url_source,file_dest, method="libcurl")
+rm(url_zip,filename_pattern, url_source, file_dest)
+```
+
+## Unzip data
+
+For this, the data in csv files is downloaded to local drive as zip
+files. They match the regular expression pattern "2022.*divvy.*.zip",
+and are unzipped. The zip files are deleted immediately
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+lst <- list.files(path = ".", pattern = "2022.*divvy.*.zip",full.names = TRUE)
+sapply(lst, unzip, exdir = ".") 
+unlink(lst)
+```
+I don't need that __MACOSX directory.
 ```{r}
-list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE)
+unlink("__MACOSX", recursive = TRUE)
 ```
 
 # Process
@@ -57,21 +104,14 @@ in the library, and loads them later
 
 ## Reading the data
 
-The data is too large to push to github, so it has been downloaded to
-the top-level directory outside git repository.
+The csv files have been downloaded. They are now read and immediately
+deleted after that.
 
-```{r}
-if (!require("tidyverse")) install.packages("tidyverse")
-library(tidyverse)
-if (!require("lubridate")) install.packages("lubridate")
-library(lubridate)
-```
-
-```{r message=FALSE, warning=FALSE}
-tripdata <-
-  list.files(path = "..", pattern = "2022.*divvy.*.csv",full.names = TRUE) %>% 
+```{r message=FALSE, warning=FALSE, include=FALSE}
+lst <- list.files(path = ".", pattern = "2022.*divvy.*.csv",full.names = TRUE)
+tripdata <- lst  %>%
   map_df(~read_csv(.))
-
+unlink(lst)
 ```
 
 ## Checking the data
@@ -144,7 +184,7 @@ For duration, it is simple. Luckily, the started_at and ended_at are
 both in POSIX_ct format as timestamps.
 
 ```{r}
-tripdata$duration <- difftime(tripdata$ended_at,tripdata$started_at, units = "secs")
+tripdata$duration <- as.numeric(difftime(tripdata$ended_at,tripdata$started_at, units = "secs"))
 ```
 
 ```{r}
@@ -163,10 +203,19 @@ Its not clear why there are entries for 0 sec durations as they are
 either maintenance calls or errors. So we will remove all these:
 
 ```{r}
+summary(tripdata$duration)
+```
+
+```{r}
 tripdata <- tripdata[tripdata$duration>0,]
 ```
 
-Date can easily be extracted, and the
+```{r}
+summary(tripdata$duration)
+```
+
+The summary here shows that there are large number of negative values which are invalid, as well as very large durations, which may be valid, but are special cases. We need to dig out the reason they are there.
+Date can easily be extracted using started_at
 
 ```{r}
 tripdata$date <- lubridate::date(tripdata$started_at)
@@ -213,20 +262,28 @@ answered revolves around it. So we will generate group-based analysis
 for each of the other factors. The value we need to check is duration,
 as it is the billable quantity here. We take sum, mean, mode, max, min
 and count.
+
 ```{r}
 max(tripdata$duration)
 ```
+
 ```{r}
-tripdata[tripdata$duration==max(tripdata$duration),]
+tripdata[tripdata$duration==max(tripdata$duration),c("rideable_type","duration","member_casual")]
+```
+The duration greater than 24 hrs i.e. 86400 sec 
+
+```{r}
+table(tripdata[tripdata$duration>86400,]$rideable_type)
 ```
 ```{r}
-table(tripdata[tripdata$duration>95000,]$rideable_type)
+tripdata[tripdata$duration>86400 & as.character(tripdata$rideable_type)=="classic_bike",c("rideable_type","duration","member_casual")]
 ```
-This is just to check the duration ranges we are dealing with. Max time is 2483235 sec which is nearly 28 days. It is a docked bike, which someone likely forgot to return to dock. Any hiretime greater than 24 hrs seems to be docked bikes, since there is no person to enforce the return of the bikes.
+This is just to check the duration ranges we are dealing with. 
+Max time
+is 2483235 sec which is nearly 28 days. It is a docked bike, which
+someone likely forgot to return to dock. Any hire time greater than 24 hrs seems to be docked bikes, since there is no person to enforce the return of the bikes. Classic bikes may be hired for up to 26 hrs, but there may have been a fine to pay :-). There were 2186 such instances.
 
 ### What day of the week
-
-
 
 ```{r}
 trips_by_weekday <- tripdata %>%
@@ -255,9 +312,9 @@ bike_prefs <- tripdata %>%
 Many plots can be generated. But which of them make sense, which of them
 give us the information we need?
 
-### Data for weekdays
+## Data for weekdays
 
-#### Count
+### Count
 
 ```{r}
 
@@ -290,7 +347,7 @@ ggsave(gg_weekday_bar,filename="gg_weekday_bar_sum.png",dpi=320)
 The pattern is even stronger here: in weekends, casual riders go out for
 long durations or many trips
 
-#### Mean
+### Mean
 
 ```{r}
 
@@ -306,7 +363,7 @@ ggsave(gg_weekday_bar,filename="gg_weekday_bar_mean.png",dpi=320)
 
 Looks like casual riders ride for longer durations. Lets confirm this:
 
-#### Max
+### Max
 
 ```{r}
 
@@ -324,12 +381,12 @@ Looks like casual riders love to go on long rides. Not necessarily in
 the weekend, but certainly more. Member riders however seem to use these
 rides for fixed durations. How consistent in this are they?
 
-### Weekdays vs Weekends
+## Weekdays vs Weekends
 
 We will now plot timelines for all the data through the year and get
 trends.
 
-#### Sum
+### Sum
 
 ```{r}
 gg_weekly_sums <- ggplot(data = weekly_trips, aes(x=date, y=sum, col=member_casual)) +
@@ -346,7 +403,7 @@ ggsave(gg_weekly_sums,filename="gg_weekly_sum.png",dpi=320)
 The members are much more consistent. Obviously the usage is more in the
 summer months.
 
-#### Mean
+### Mean
 
 ```{r}
 gg_weekly_means <- ggplot(data = weekly_trips, aes(x=date, y=mean, col=member_casual)) +
@@ -362,7 +419,7 @@ ggsave(gg_weekly_means,filename="gg_weekly_means.png",dpi=320)
 
 This strongly reinforces the consistency of the members
 
-#### Count
+### Count
 
 ```{r}
 gg_weekly_count <- ggplot(data = weekly_trips, aes(x=date, y=count, col=member_casual)) +
@@ -380,7 +437,7 @@ ggsave(gg_weekly_count,filename="gg_weekly_count.png",dpi=320)
 There is not much appreciable difference in counts. It seems members and
 casual riders take similar number of rides in the weekdays and weekends.
 
-#### Max
+### Max
 
 ```{r}
 gg_week_max <- ggplot(data = weekly_trips, aes(x=date, y=max, col=member_casual)) +
@@ -395,8 +452,8 @@ ggsave(gg_week_max,filename="gg_week_max.png",dpi=320)
 
 ![](gg_week_max.png)
 
-This shows a drastic difference. The duration of member rides is highly
-restricted and those of casual riders are not. One obvious reason is
+Max values are restricted to around 25 hrs at max (24 + 1hr grace period - as a guess). The docked_bike values are not included here, as we have seen them going much greater than 25 hrs. 
+Even under these situations,member usage is more restricted and those of casual riders are not. One obvious reason is
 that members use the rides for daily commute to work, while casual
 riders use them for adventure or recreation. To confirm this theory,
 lets take a histogram of means
